@@ -1,4 +1,5 @@
 using VocabularyTrainer.Components;
+using VocabularyTrainer.Services;
 
 namespace VocabularyTrainer;
 
@@ -8,11 +9,11 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add services to the container.
         builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents();
 
-        builder.Services.AddDatabase(builder.Configuration);
+        builder.Services.AddDatabase(builder.Configuration)
+            .AddTranslationService(builder.Configuration);
 
         var app = builder.Build();
 

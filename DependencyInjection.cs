@@ -1,6 +1,9 @@
 ﻿using Microsoft.AspNetCore.Connections;
 using Npgsql;
+using VocabularyTrainer.Configuration;
 using VocabularyTrainer.Data;
+using VocabularyTrainer.Services;
+using VocabularyTrainer.Services.Interfaces;
 
 namespace VocabularyTrainer;
 
@@ -18,6 +21,22 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IDbConnectionFactory, NpgsqlConnectionFactory>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddTranslationService(this IServiceCollection services, IConfiguration config)
+    {
+        services.Configure<TranslatorOptions>(config.GetSection("Translator"));
+
+        services.AddHttpClient<ITranslationService, TranslationService>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddServices(this IServiceCollection services, IConfiguration config)
+    {
+        
 
         return services;
     }

@@ -1,0 +1,101 @@
+﻿@using VocabularyTrainer.Services.Interfaces
+
+
+@page "/translate"
+@inject ITranslationService TranslationService;
+
+<h3>Azure Translator Demo</h3>
+
+<div class="mb-3">
+    <label>From</label>
+    <select @bind="From">
+        <option value="en">en</option>
+        <option value="de">de</option>
+    </select>
+    <label class="ms-3">To</label>
+    <select @bind="To">
+        <option value="de">de</option>
+        <option value="en">en</option>
+    </select>
+</div>
+
+<input class="form-control" placeholder="Text oder Wort" @bind="Input" />
+
+<div class="mt-3 d-flex gap-2">
+    <button class="btn btn-primary" @onclick="DoTranslate">Translate</button>
+    <button class="btn btn-secondary" @onclick="DoLookup">Dictionary Lookup</button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Result))
+{
+    <div class="alert alert-success mt-3">
+        <b>Result:</b> @Result
+        @if (!string.IsNullOrEmpty(Pos))
+        {
+            <div><i>Part-of-Speech: </i> @Pos</div>
+        }
+    </div>
+}
+
+@if (Alternatives?.Count > 0)
+{
+    <div class="mt-3">
+        <b>Alternatives:</b>
+        <ul>
+            @foreach (var a in Alternatives)
+            {
+                <li>@a</li>
+            }
+        </ul>
+    </div>
+}
+
+@if (Examples?.Count > 0)
+{
+    <div class="mt-3">
+        <b>Examples:</b>
+        <ul>
+            @foreach (var p in Examples)
+            {
+                <li><i>@p.Source</i> → @p.Target</li>
+            }
+        </ul>
+    </div>
+}
+
+@code {
+    string From = "en";
+    string To = "de";
+    string? Input;
+    string? Result;
+    string? Pos;
+    List<string>? Alternatives;
+    List<(string Source, string Target)>? Examples;
+
+    async Task DoTranslate()
+    {
+        Clear();
+        if (string.IsNullOrWhiteSpace(Input)) return;
+        var r = await TranslationService.TranslateAsync(Input!, From, To);
+        Result = r.Target;
+        StateHasChanged();
+    }
+
+    async Task DoLookup()
+    {
+        Clear();
+        if (string.IsNullOrWhiteSpace(Input)) return;
+        var r = await TranslationService.LookupAsync(Input!, From, To);
+        Result = r.Target;
+        Pos = r.Pos;
+        Alternatives = r.Alternatives?.ToList();
+        Examples = r.ExamplePairs?.ToList();
+        StateHasChanged();
+    }
+
+    void Clear()
+    {
+        Result = null; Pos = null;
+        Alternatives = null; Examples = null;
+    }
+}
