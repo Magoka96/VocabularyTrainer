@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Connections;
 using Npgsql;
-using VocabularyTrainer.Configuration;
-using VocabularyTrainer.Data;
-using VocabularyTrainer.Services;
-using VocabularyTrainer.Services.Interfaces;
+using VocabularyTrainer.Web.Configuration;
+using VocabularyTrainer.Web.Data;
+using VocabularyTrainer.Web.Services;
+using VocabularyTrainer.Web.Services.Interfaces;
 
-namespace VocabularyTrainer;
+namespace VocabularyTrainer.Web;
 
 public static class ServiceCollectionExtensions
 {
@@ -14,7 +14,7 @@ public static class ServiceCollectionExtensions
         var connStr = config.GetConnectionString("Postgres")
                      ?? throw new InvalidOperationException("ConnectionStrings:Postgres missing");
 
-        services.AddSingleton<NpgsqlDataSource>(_ =>
+        services.AddSingleton(_ =>
         {
             var builder = new NpgsqlDataSourceBuilder(connStr);
             return builder.Build();

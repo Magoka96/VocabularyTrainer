@@ -1,4 +1,4 @@
-﻿namespace VocabularyTrainer.Configuration;
+﻿namespace VocabularyTrainer.Web.Configuration;
 
 public sealed class TranslatorOptions
 {

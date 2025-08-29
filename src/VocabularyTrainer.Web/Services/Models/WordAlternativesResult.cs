@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace VocabularyTrainer.Services.Models;
+namespace VocabularyTrainer.Web.Services.Models;
 
 public record WordAlternativesResult(
     List<string> Alternatives,

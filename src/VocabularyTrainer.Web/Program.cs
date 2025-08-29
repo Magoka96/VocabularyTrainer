@@ -1,8 +1,8 @@
 using MudBlazor.Services;
-using VocabularyTrainer.Components;
-using VocabularyTrainer.Services;
+using VocabularyTrainer.Web.Components;
+using VocabularyTrainer.Web.Services;
 
-namespace VocabularyTrainer;
+namespace VocabularyTrainer.Web;
 
 public class Program
 {
