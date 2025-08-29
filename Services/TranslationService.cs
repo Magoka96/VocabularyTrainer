@@ -32,7 +32,7 @@ public sealed class TranslationService(HttpClient http, IOptions<TranslatorOptio
     public async Task<TranslationResult> LookupAsync(string word, string from, string to, CancellationToken ct = default)
     {        
         var alternativesResult = await GetAlternativesForSearchedWord(word, from, to, ct);
-        var examplesResult = await GetExamplesForSearchedWord(alternativesResult.Best, word, from, to, ct);
+        var examplesResult = await GetExamplesForSearchedWord(alternativesResult.BestNormalizedTarget, word, from, to, ct);
 
         return new TranslationResult(word,
             Target: alternativesResult.Alternatives.FirstOrDefault() ?? string.Empty,
@@ -56,50 +56,56 @@ public sealed class TranslationService(HttpClient http, IOptions<TranslatorOptio
         using var lookupDocument = await JsonDocument.ParseAsync(await lookupResult.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
         var translations = lookupDocument.RootElement[0].GetProperty("translations").EnumerateArray().ToList();
 
-        var best = translations.FirstOrDefault();
-
         // Part of Speech, such as noun, verb etc.
         string? pos = null;
-        if (best.ValueKind != JsonValueKind.Undefined && best.TryGetProperty("posTag", out var posEl))
-            pos = posEl.GetString();
+        string? bestNormalizedTarget = null;
+
+        if (translations.Count > 0)
+        {
+            var best = translations[0];
+            if (best.TryGetProperty("posTag", out var posEl))
+                pos = posEl.GetString();
+            if (best.TryGetProperty("normalizedTarget", out var normEl))
+                bestNormalizedTarget = normEl.GetString();
+        }
 
         var alternatives = translations
             .Select(t => t.GetProperty("displayTarget").GetString()!)
             .Distinct()
+            .Where(s => !string.Equals(s, bestNormalizedTarget, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        return new WordAlternativesResult(alternatives, pos, best);
+
+        return new WordAlternativesResult(alternatives, pos, bestNormalizedTarget);
     }
 
-    private async Task<WordExamplesResult> GetExamplesForSearchedWord(JsonElement best, string word, string from, string to, CancellationToken ct)
+    private async Task<WordExamplesResult> GetExamplesForSearchedWord(string? bestNormalizedTarget, string word, string from, string to, CancellationToken ct)
     {
         var examplePairs = new List<(string Source, string Target)>();
 
-        if (best.ValueKind != JsonValueKind.Undefined &&
-            best.TryGetProperty("normalizedTarget", out var normTargetEl))
+        if (string.IsNullOrWhiteSpace(bestNormalizedTarget))
+            return new WordExamplesResult(examplePairs);
+
+        using var exReq = new HttpRequestMessage(HttpMethod.Post,
+            $"{_options.Endpoint.TrimEnd('/')}/dictionary/examples?api-version=3.0&from={from}&to={to}");
+
+        AddHeaders(exReq);
+        exReq.Content = JsonContent.Create(new[] { new { Text = word, Translation = bestNormalizedTarget } });
+
+        using var exRes = await _http.SendAsync(exReq, ct);
+        if (!exRes.IsSuccessStatusCode)
+            return new WordExamplesResult(examplePairs);
+
+        using var exDoc = await JsonDocument.ParseAsync(await exRes.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+        foreach (var ex in exDoc.RootElement[0].GetProperty("examples").EnumerateArray())
         {
-            var normTarget = normTargetEl.GetString();
-
-            if (!string.IsNullOrWhiteSpace(normTarget))
-            {
-                using var exReq = new HttpRequestMessage(HttpMethod.Post, $"{_options.Endpoint.TrimEnd('/')}/dictionary/examples?api-version=3.0&from={from}&to={to}");
-
-                AddHeaders(exReq);
-
-                exReq.Content = JsonContent.Create(new[] { new { Text = word, Translation = normTarget } });
-
-                using var exRes = await _http.SendAsync(exReq, ct);
-                if (exRes.IsSuccessStatusCode)
-                {
-                    using var exDoc = await JsonDocument.ParseAsync(await exRes.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
-                    foreach (var ex in exDoc.RootElement[0].GetProperty("examples").EnumerateArray())
-                    {
-                        var src = ex.GetProperty("sourcePrefix").GetString() + ex.GetProperty("sourceTerm").GetString() + ex.GetProperty("sourceSuffix").GetString();
-                        var tgt = ex.GetProperty("targetPrefix").GetString() + ex.GetProperty("targetTerm").GetString() + ex.GetProperty("targetSuffix").GetString();
-                        examplePairs.Add((src, tgt));
-                    }
-                }
-            }
+            var src = (ex.GetProperty("sourcePrefix").GetString() ?? "")
+                    + (ex.GetProperty("sourceTerm").GetString() ?? "")
+                    + (ex.GetProperty("sourceSuffix").GetString() ?? "");
+            var tgt = (ex.GetProperty("targetPrefix").GetString() ?? "")
+                    + (ex.GetProperty("targetTerm").GetString() ?? "")
+                    + (ex.GetProperty("targetSuffix").GetString() ?? "");
+            examplePairs.Add((src, tgt));
         }
 
         return new WordExamplesResult(examplePairs);

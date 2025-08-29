@@ -1,67 +1,164 @@
-﻿@using VocabularyTrainer.Services.Interfaces
+﻿@page "/translate"
+@using VocabularyTrainer.Services.Interfaces
+@inject ITranslationService TranslationService
+@inject ISnackbar Snackbar
 
+<MudGrid Class="pa-4">
+    <MudItem xs="12" md="8" lg="7">
+        <MudCard Elevation="2">
+            <MudCardHeader>
+                <MudText Typo="Typo.h5" Class="d-flex align-center">
+                    <MudIcon Icon="@Icons.Material.Filled.GTranslate" Class="mr-2" />
+                    Azure Translator
+                </MudText>
+                <MudSpacer />
+                <MudToggleIconButton @bind-Toggled="_detectLang"
+                               Color="Color.Default"
+                               ToggledColor="Color.Primary"
+                               Size="Size.Small"
+                               Icon="@Icons.Material.Outlined.Language"
+                               ToggledIcon="@Icons.Material.Filled.Language"
+                               Title="@(_detectLang ? "Auto-Detect an" : "Auto-Detect aus")" />
+            </MudCardHeader>
 
-@page "/translate"
-@inject ITranslationService TranslationService;
+            <MudCardContent>
 
-<h3>Azure Translator Demo</h3>
+                <MudGrid Class="mb-2">
+                    <MudItem xs="12" md="5">
+                        <MudSelect string Label="From" @bind-Value="From" Disabled="_detectLang">
+                            @foreach (var l in _langs)
+                                { <MudSelectItem Value="@l">@l</MudSelectItem> }
+                        </MudSelect>
+                    </MudItem>
 
-<div class="mb-3">
-    <label>From</label>
-    <select @bind="From">
-        <option value="en">en</option>
-        <option value="de">de</option>
-    </select>
-    <label class="ms-3">To</label>
-    <select @bind="To">
-        <option value="de">de</option>
-        <option value="en">en</option>
-    </select>
-</div>
+                    <MudItem xs="12" md="2" Class="d-flex align-center justify-center mt-3 mt-md-0">
+                        <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz"
+                                       OnClick="Swap"
+                                       Color="Color.Primary"
+                                       Title="Sprachen tauschen" />
+                    </MudItem>
 
-<input class="form-control" placeholder="Text oder Wort" @bind="Input" />
+                    <MudItem xs="12" md="5">
+                        <MudSelect string Label="To" @bind-Value="To">
+                            @foreach (var l in _langs)
+                                { <MudSelectItem Value="@l">@l</MudSelectItem> }
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
 
-<div class="mt-3 d-flex gap-2">
-    <button class="btn btn-primary" @onclick="DoTranslate">Translate</button>
-    <button class="btn btn-secondary" @onclick="DoLookup">Dictionary Lookup</button>
-</div>
+                <MudTextField @bind-Value="Input"
+                              Label="Text oder Wort"
+                              Placeholder="z. B. 'table' oder 'I like this show...'"
+                              Lines="3"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.TextFields"
+                              Immediate="true"
+                              OnKeyDown="OnKeyDown" />
 
-@if (!string.IsNullOrWhiteSpace(Result))
-{
-    <div class="alert alert-success mt-3">
-        <b>Result:</b> @Result
-        @if (!string.IsNullOrEmpty(Pos))
-        {
-            <div><i>Part-of-Speech: </i> @Pos</div>
-        }
-    </div>
-}
+                <div class="mt-3 d-flex gap-2">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Translate"
+                               OnClick="DoTranslate"
+                               Disabled="@_busy">
+                        Translate
+                    </MudButton>
 
-@if (Alternatives?.Count > 0)
-{
-    <div class="mt-3">
-        <b>Alternatives:</b>
-        <ul>
-            @foreach (var a in Alternatives)
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Secondary"
+                               StartIcon="@Icons.Material.Filled.AutoStories"
+                               OnClick="DoLookup"
+                               Disabled="@_busy">
+                        Dictionary Lookup
+                    </MudButton>
+
+                    @if (_busy)
+                    {
+                        <MudProgressCircular Indeterminate="true" Class="ml-2" Size="Size.Small" />
+                    }
+                </div>
+
+            </MudCardContent>
+
+            @if (!string.IsNullOrWhiteSpace(Result) || !string.IsNullOrWhiteSpace(Pos) || (Alternatives?.Count > 0))
             {
-                <li>@a</li>
-            }
-        </ul>
-    </div>
-}
+                <MudDivider />
 
-@if (Examples?.Count > 0)
-{
-    <div class="mt-3">
-        <b>Examples:</b>
-        <ul>
-            @foreach (var p in Examples)
-            {
-                <li><i>@p.Source</i> → @p.Target</li>
+                <MudCardContent>
+
+                    @if (!string.IsNullOrWhiteSpace(Result))
+                    {
+                        <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Dense="true" Class="mb-3">
+                            <div class="d-flex align-center">
+                                <MudText Typo="Typo.subtitle1" Class="mr-2"><b>Result:</b> @Result</MudText>
+                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                               Size="Size.Small"
+                                               Color="Color.Inherit"
+                                               OnClick="@CopyResult" Title="Kopieren" />
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(Pos))
+                            {
+                                <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined" Class="mt-2">
+                                    POS: @Pos
+                                </MudChip>
+
+                            }
+                        </MudAlert>
+                    }
+
+                    @if (Alternatives?.Count > 0)
+                    {
+                        <MudText Typo="Typo.subtitle2" Class="mb-1">Alternatives</MudText>
+
+                        <MudChipSet T="string">
+                            @foreach (var a in Alternatives)
+                            {
+                                <MudChip T="string"
+                                         Value="@a"
+                                         Variant="Variant.Outlined"
+                                         Class="mr-1 mb-1"
+                                         OnClick="@(()=>PickAlternative(a))">
+                                    @a
+                                </MudChip>
+                            }
+                        </MudChipSet>
+
+                    }
+
+                </MudCardContent>
             }
-        </ul>
-    </div>
-}
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" md="4" lg="5">
+        <MudCard Elevation="2">
+            <MudCardHeader>
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Filled.MenuBook" Class="mr-2" /> Examples
+                </MudText>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (Examples?.Count > 0)
+                {
+                    <MudTable Dense="true" Hover="true" Elevation="0" Items="Examples">
+                        <HeaderContent>
+                            <MudTh>Source</MudTh>
+                            <MudTh>Target</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Source"><i>@context.Source</i></MudTd>
+                            <MudTd DataLabel="Target">@context.Target</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+                else
+                {
+                    <MudText Color="Color.Secondary" Class="mt-2">Keine Beispiele geladen.</MudText>
+                }
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
 
 @code {
     string From = "en";
@@ -72,29 +169,75 @@
     List<string>? Alternatives;
     List<(string Source, string Target)>? Examples;
 
+    bool _busy;
+    bool _detectLang = false; // wenn true, ignorieren wir "From"
+    readonly string[] _langs = new[] { "en", "de", "fr", "es", "it", "sv", "pl" };
+
     async Task DoTranslate()
     {
-        Clear();
-        if (string.IsNullOrWhiteSpace(Input)) return;
-        var r = await TranslationService.TranslateAsync(Input!, From, To);
-        Result = r.Target;
-        StateHasChanged();
+        if (string.IsNullOrWhiteSpace(Input)) { Snackbar.Add("Bitte Text eingeben.", Severity.Info); return; }
+        try
+        {
+            _busy = true; Clear(false);
+            var from = _detectLang ? "" : From; // Azure kann from leer lassen -> auto-detect
+            var r = await TranslationService.TranslateAsync(Input!, from, To);
+            Result = r.Target;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Translate fehlgeschlagen: {ex.Message}", Severity.Error);
+        }
+        finally { _busy = false; }
     }
 
     async Task DoLookup()
     {
-        Clear();
-        if (string.IsNullOrWhiteSpace(Input)) return;
-        var r = await TranslationService.LookupAsync(Input!, From, To);
-        Result = r.Target;
-        Pos = r.Pos;
-        Alternatives = r.Alternatives?.ToList();
-        Examples = r.ExamplePairs?.ToList();
+        if (string.IsNullOrWhiteSpace(Input)) { Snackbar.Add("Bitte Wort eingeben.", Severity.Info); return; }
+        try
+        {
+            _busy = true; Clear(false);
+            var from = _detectLang ? "" : From;
+            var r = await TranslationService.LookupAsync(Input!, from, To);
+            Result = r.Target;
+            Pos = r.Pos;
+            Alternatives = r.Alternatives?.ToList();
+            Examples = r.ExamplePairs?.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lookup fehlgeschlagen: {ex.Message}", Severity.Error);
+        }
+        finally { _busy = false; }
+    }
+
+    void PickAlternative(string a)
+    {
+        Result = a;
+        Snackbar.Add($"Alternative gewählt: {a}", Severity.Normal, cfg => cfg.HideTransitionDuration = 100);
         StateHasChanged();
     }
 
-    void Clear()
+    void CopyResult()
     {
+        // simple fallback: in Clipboard per JS wäre ideal; hier Snack nur als Feedback
+        Snackbar.Add("Kopiert ✔ (falls nicht, bitte manuell markieren)", Severity.Success);
+    }
+
+    void Swap()
+    {
+        (From, To) = (To, From);
+        Snackbar.Add($"Sprachen getauscht: {From.ToUpper()} → {To.ToUpper()}", Severity.Info);
+    }
+
+    void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && (e.CtrlKey || e.MetaKey))
+            _ = DoTranslate();
+    }
+
+    void Clear(bool withInput = true)
+    {
+        if (withInput) Input = null;
         Result = null; Pos = null;
         Alternatives = null; Examples = null;
     }
