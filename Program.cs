@@ -1,3 +1,4 @@
+using MudBlazor.Services;
 using VocabularyTrainer.Components;
 using VocabularyTrainer.Services;
 
@@ -11,6 +12,8 @@ public class Program
 
         builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents();
+
+        builder.Services.AddMudServices();
 
         builder.Services.AddDatabase(builder.Configuration)
             .AddTranslationService(builder.Configuration);
