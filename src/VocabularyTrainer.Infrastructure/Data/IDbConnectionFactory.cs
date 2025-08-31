@@ -1,6 +1,6 @@
 ﻿using Npgsql;
 
-namespace VocabularyTrainer.Web.Data;
+namespace VocabularyTrainer.Infrastructure.Data;
 
 public interface IDbConnectionFactory
 {

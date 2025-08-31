@@ -1,6 +1,11 @@
+using Auth0.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using MudBlazor.Services;
+using VocabularyTrainer.Infrastructure;
+using VocabularyTrainer.Infrastructure.Configuration;
 using VocabularyTrainer.Web.Components;
-using VocabularyTrainer.Web.Services;
+using VocabularyTrainer.Web.Extensions;
 
 namespace VocabularyTrainer.Web;
 
@@ -16,21 +21,26 @@ public class Program
         builder.Services.AddMudServices();
 
         builder.Services.AddDatabase(builder.Configuration)
-            .AddTranslationService(builder.Configuration);
+            .AddTranslationService(builder.Configuration)
+            .AddAuth0Authentication(builder.Configuration)
+            .AddCurrentUserService();
 
         var app = builder.Build();
 
-        // Configure the HTTP request pipeline.
         if (!app.Environment.IsDevelopment())
         {
             app.UseExceptionHandler("/Error");
-            // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
             app.UseHsts();
         }
 
         app.UseHttpsRedirection();
 
         app.UseAntiforgery();
+
+        app.UseAuthentication();
+        app.UseAuthorization();
+
+        app.MapAuth0Endpoints();
 
         app.MapStaticAssets();
         app.MapRazorComponents<App>()

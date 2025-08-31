@@ -1,10 +1,11 @@
 ﻿using Microsoft.Extensions.Options;
+using System.Net.Http.Json;
 using System.Text.Json;
-using VocabularyTrainer.Web.Configuration;
-using VocabularyTrainer.Web.Services.Interfaces;
-using VocabularyTrainer.Web.Services.Models;
+using VocabularyTrainer.Application.Interfaces;
+using VocabularyTrainer.Application.Models;
+using VocabularyTrainer.Infrastructure.Configuration;
 
-namespace VocabularyTrainer.Web.Services;
+namespace VocabularyTrainer.Infrastructure.Services;
 
 public sealed class TranslationService(HttpClient http, IOptions<TranslatorOptions> options) : ITranslationService
 {

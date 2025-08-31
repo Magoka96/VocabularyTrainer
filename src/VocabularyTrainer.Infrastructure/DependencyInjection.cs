@@ -1,13 +1,14 @@
-﻿using Microsoft.AspNetCore.Connections;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
-using VocabularyTrainer.Web.Configuration;
-using VocabularyTrainer.Web.Data;
-using VocabularyTrainer.Web.Services;
-using VocabularyTrainer.Web.Services.Interfaces;
+using VocabularyTrainer.Application.Interfaces;
+using VocabularyTrainer.Infrastructure.Configuration;
+using VocabularyTrainer.Infrastructure.Data;
+using VocabularyTrainer.Infrastructure.Services;
 
-namespace VocabularyTrainer.Web;
+namespace VocabularyTrainer.Infrastructure;
 
-public static class ServiceCollectionExtensions
+public static class DependencyInjection
 {
     public static IServiceCollection AddDatabase(this IServiceCollection services, IConfiguration config)
     {
@@ -30,13 +31,6 @@ public static class ServiceCollectionExtensions
         services.Configure<TranslatorOptions>(config.GetSection("Translator"));
 
         services.AddHttpClient<ITranslationService, TranslationService>();
-
-        return services;
-    }
-
-    public static IServiceCollection AddServices(this IServiceCollection services, IConfiguration config)
-    {
-        
 
         return services;
     }

@@ -1,6 +1,6 @@
-﻿using VocabularyTrainer.Web.Services.Models;
+﻿using VocabularyTrainer.Application.Models;
 
-namespace VocabularyTrainer.Web.Services.Interfaces;
+namespace VocabularyTrainer.Application.Interfaces;
 
 public interface ITranslationService
 {

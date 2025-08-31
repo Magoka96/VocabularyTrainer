@@ -1,4 +1,5 @@
 ﻿@using MudBlazor
+@using VocabularyTrainer.Web.Components.Pages
 @inherits LayoutComponentBase
 
 <MudThemeProvider Theme="_theme" IsDarkMode="_isDarkMode" />
@@ -22,9 +23,8 @@
 
         <MudSpacer />
 
-        <!-- (optional) LoginDisplay -->
         <div class="d-none d-sm-flex">
-            @* <LoginDisplay /> *@
+            <Login />
         </div>
 
         <!-- User Menu -->
@@ -33,7 +33,7 @@
                  Color="Color.Inherit"
                  Dense="true">
             <div class="pa-3">
-                @* <LoginDisplay /> *@
+                
             </div>
         </MudMenu>
 

@@ -1,5 +1,6 @@
-﻿@page "/translate"
-@using VocabularyTrainer.Web.Services.Interfaces
+﻿@using VocabularyTrainer.Application.Interfaces
+@attribute [Authorize]
+@page "/translate"
 @inject ITranslationService TranslationService
 @inject ISnackbar Snackbar
 

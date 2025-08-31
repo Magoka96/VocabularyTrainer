@@ -1,4 +1,4 @@
-﻿namespace VocabularyTrainer.Web.Services.Models;
+﻿namespace VocabularyTrainer.Application.Models;
 
 public record TranslationResult(
     string Source,
